@@ -63,6 +63,55 @@
         border: 2px solid #3d3d5c;
         overflow: hidden;
         margin-bottom: 12px;
+        transition: background 0.5s;
+      }
+
+      /* Theme: City (default/starter) */
+      .game-area.theme-city {
+        background: linear-gradient(180deg, #1a1a3a 0%, #2a2a50 40%, #3d3d5c 60%, #4a4a6a 100%);
+      }
+
+      /* Theme: Highway */
+      .game-area.theme-highway {
+        background: linear-gradient(180deg, #87ceeb 0%, #b0d8f0 30%, #7ab06a 60%, #5a8a4a 100%);
+      }
+      .game-area.theme-highway .road {
+        background: #2a2a2a;
+        border-top: 2px solid #444;
+        height: 24px;
+      }
+
+      /* Theme: Racing */
+      .game-area.theme-racing {
+        background: linear-gradient(180deg, #1a0a2e 0%, #2d1b4e 30%, #555 60%, #333 100%);
+      }
+      .game-area.theme-racing .road {
+        background: #222;
+        border-top: 3px solid #e94560;
+        border-bottom: 3px solid #e94560;
+        height: 24px;
+      }
+
+      /* Theme: Space */
+      .game-area.theme-space {
+        background: linear-gradient(180deg, #000011 0%, #0a0a2a 40%, #111133 70%, #0a0a1a 100%);
+      }
+      .game-area.theme-space .road {
+        background: transparent;
+        border: none;
+        height: 4px;
+        border-top: 1px solid rgba(100, 200, 255, 0.3);
+      }
+
+      /* Theme: Alien */
+      .game-area.theme-alien {
+        background: linear-gradient(180deg, #1a003a 0%, #2d0055 30%, #4a0e4a 60%, #2a1a2a 100%);
+      }
+      .game-area.theme-alien .road {
+        background: #1a3a1a;
+        border-top: 2px solid #00ff88;
+        border-bottom: 2px solid #00ff88;
+        height: 20px;
       }
 
       /* Background scenery layers for parallax depth */
@@ -442,11 +491,11 @@
       const gameAreaEl = document.getElementById("game-area");
 
       const CARS = [
-        { emoji: "🚗", name: "Starter", cost: 0, baseSpeed: 60 },
-        { emoji: "🚙", name: "SUV", cost: 100, baseSpeed: 80 },
-        { emoji: "🏎️", name: "Sports Car", cost: 500, baseSpeed: 120 },
-        { emoji: "🚀", name: "Rocket", cost: 2000, baseSpeed: 200 },
-        { emoji: "🛸", name: "UFO", cost: 10000, baseSpeed: 350 },
+        { emoji: "🚗", name: "Starter", cost: 0, baseSpeed: 60, theme: "city" },
+        { emoji: "🚙", name: "SUV", cost: 100, baseSpeed: 120, theme: "highway" },
+        { emoji: "🏎️", name: "Sports Car", cost: 500, baseSpeed: 250, theme: "racing" },
+        { emoji: "🚀", name: "Rocket", cost: 2000, baseSpeed: 500, theme: "space" },
+        { emoji: "🛸", name: "UFO", cost: 10000, baseSpeed: 1000, theme: "alien" },
       ];
 
       const UPGRADES = [
@@ -501,8 +550,18 @@
         racesEl.textContent = state.races;
         bestSpeedEl.textContent = state.bestSpeed;
         carEl.textContent = CARS[state.currentCar].emoji;
+        applyTheme();
         renderUpgrades();
         renderGarage();
+      }
+
+      function applyTheme() {
+        const theme = CARS[state.currentCar].theme;
+        const area = gameAreaEl;
+
+        // Remove old theme classes
+        area.classList.remove("theme-city", "theme-highway", "theme-racing", "theme-space", "theme-alien");
+        area.classList.add("theme-" + theme);
       }
 
       function renderUpgrades() {
@@ -605,11 +664,13 @@
 
         // Add road lines
         const lines = [];
+        const lineColor = theme === "space" ? "#4fc3f7" : theme === "alien" ? "#00ff88" : "#ffd700";
         for (let i = 0; i < 6; i++) {
           const line = document.createElement("div");
           line.className = "road-line";
           line.style.animationDuration = "3s";
           line.style.animationDelay = (i * 0.5) + "s";
+          line.style.background = lineColor;
           gameAreaEl.appendChild(line);
           lines.push(line);
         }
@@ -628,30 +689,66 @@
           speedLines.push(sl);
         }
 
-        // Add trees in foreground
+        // Add trees/scenery based on theme
         const treesContainer = document.getElementById("trees");
         treesContainer.innerHTML = "";
-        const treeEmojis = ["🌲", "🌳", "🌴"];
+        const theme = CARS[state.currentCar].theme;
+        let sceneryEmojis;
+        switch (theme) {
+          case "highway": sceneryEmojis = ["🏠", "🏢", "🏪", "⛽", "🚏"]; break;
+          case "racing": sceneryEmojis = ["🏁", "🔧", "🏟️", "🚧", "🔴"]; break;
+          case "space": sceneryEmojis = ["⭐", "✨", "🌟", "💫", "☄️"]; break;
+          case "alien": sceneryEmojis = ["👽", "🍄", "🪸", "🌵", "💎"]; break;
+          default: sceneryEmojis = ["🌲", "🌳", "🌴"]; break;
+        }
         for (let i = 0; i < 5; i++) {
           const tree = document.createElement("div");
           tree.className = "tree";
-          tree.textContent = treeEmojis[Math.floor(Math.random() * treeEmojis.length)];
+          tree.textContent = sceneryEmojis[Math.floor(Math.random() * sceneryEmojis.length)];
           tree.style.animationDuration = "2.5s";
           tree.style.animationDelay = (i * 0.5) + "s";
           treesContainer.appendChild(tree);
         }
 
-        // Add buildings in background
+        // Add buildings/background objects based on theme
         const buildingsContainer = document.getElementById("buildings");
         buildingsContainer.innerHTML = "";
-        for (let i = 0; i < 4; i++) {
-          const bld = document.createElement("div");
-          bld.className = "building";
-          bld.style.width = (15 + Math.random() * 20) + "px";
-          bld.style.height = (20 + Math.random() * 30) + "px";
-          bld.style.animationDuration = "6s";
-          bld.style.animationDelay = (i * 1.5) + "s";
-          buildingsContainer.appendChild(bld);
+        if (theme === "space") {
+          // Stars/planets in background
+          for (let i = 0; i < 6; i++) {
+            const star = document.createElement("div");
+            star.className = "building";
+            star.style.width = "4px";
+            star.style.height = "4px";
+            star.style.borderRadius = "50%";
+            star.style.background = "#fff";
+            star.style.bottom = (Math.random() * 40) + "px";
+            star.style.animationDuration = "6s";
+            star.style.animationDelay = (i * 1) + "s";
+            buildingsContainer.appendChild(star);
+          }
+        } else if (theme === "alien") {
+          for (let i = 0; i < 4; i++) {
+            const bld = document.createElement("div");
+            bld.className = "building";
+            bld.style.width = (10 + Math.random() * 15) + "px";
+            bld.style.height = (15 + Math.random() * 35) + "px";
+            bld.style.background = "#3a0060";
+            bld.style.borderRadius = "50% 50% 0 0";
+            bld.style.animationDuration = "6s";
+            bld.style.animationDelay = (i * 1.5) + "s";
+            buildingsContainer.appendChild(bld);
+          }
+        } else {
+          for (let i = 0; i < 4; i++) {
+            const bld = document.createElement("div");
+            bld.className = "building";
+            bld.style.width = (15 + Math.random() * 20) + "px";
+            bld.style.height = (20 + Math.random() * 30) + "px";
+            bld.style.animationDuration = "6s";
+            bld.style.animationDelay = (i * 1.5) + "s";
+            buildingsContainer.appendChild(bld);
+          }
         }
 
         // Exhaust puffs
