@@ -179,6 +179,45 @@
         color: #ff9999;
       }
 
+      /* Mobile d-pad */
+      .dpad {
+        display: grid;
+        grid-template-areas:
+          ". up ."
+          "left down right";
+        grid-template-columns: repeat(3, 60px);
+        grid-template-rows: repeat(2, 60px);
+        gap: 6px;
+        margin-top: 20px;
+      }
+
+      .dpad button {
+        width: 60px;
+        height: 60px;
+        border: 2px solid #ffd700;
+        border-radius: 10px;
+        background: #4a0000;
+        color: #ffd700;
+        font-size: 1.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+      }
+
+      .dpad button:active {
+        background: #da020e;
+        transform: scale(0.92);
+      }
+
+      .dpad .up { grid-area: up; }
+      .dpad .down { grid-area: down; }
+      .dpad .left { grid-area: left; }
+      .dpad .right { grid-area: right; }
+
       /* Celebration overlay */
       #celebration {
         display: none;
@@ -264,9 +303,16 @@
     <div id="maze-container" role="grid" aria-label="Man United Maze"></div>
     <div id="message"></div>
     <div class="instructions">
-      Use arrow keys to dribble from
+      Use arrow keys or the buttons below to dribble from
       🔴 <span style="color: #ff6666">Old Trafford</span> to
       🏆 <span style="color: #ffd700">the trophy</span>
+    </div>
+
+    <div class="dpad">
+      <button class="up" aria-label="Move up">▲</button>
+      <button class="left" aria-label="Move left">◀</button>
+      <button class="down" aria-label="Move down">▼</button>
+      <button class="right" aria-label="Move right">▶</button>
     </div>
 
     <script>
@@ -543,6 +589,12 @@
       }
 
       generateBtn.addEventListener("click", startGame);
+
+      // D-pad buttons
+      document.querySelector(".dpad .up").addEventListener("click", () => movePlayer(-1, 0));
+      document.querySelector(".dpad .down").addEventListener("click", () => movePlayer(1, 0));
+      document.querySelector(".dpad .left").addEventListener("click", () => movePlayer(0, -1));
+      document.querySelector(".dpad .right").addEventListener("click", () => movePlayer(0, 1));
 
       // Kick off on load
       startGame();
