@@ -546,12 +546,6 @@
               state.currentCar = idx;
               saveState();
               updateUI();
-            } else if (state.coins >= car.cost) {
-              state.coins -= car.cost;
-              state.unlockedCars[idx] = true;
-              state.currentCar = idx;
-              saveState();
-              updateUI();
             }
           });
 
@@ -569,7 +563,27 @@
         state.coins -= cost;
         state.upgrades[upgrade.id]++;
         saveState();
+        checkCarUnlock();
         updateUI();
+      }
+
+      function checkCarUnlock() {
+        // If all upgrades are maxed, unlock the next car
+        const allMaxed = UPGRADES.every(up => state.upgrades[up.id] >= up.maxLevel);
+        if (!allMaxed) return;
+
+        const nextCarIdx = state.currentCar + 1;
+        if (nextCarIdx < CARS.length && !state.unlockedCars[nextCarIdx]) {
+          state.unlockedCars[nextCarIdx] = true;
+          state.currentCar = nextCarIdx;
+          // Reset upgrades for the new car
+          for (const up of UPGRADES) {
+            state.upgrades[up.id] = 0;
+          }
+          saveState();
+          resultEl.textContent = `🎉 Unlocked ${CARS[nextCarIdx].name}!`;
+          setTimeout(() => { resultEl.textContent = ""; }, 3000);
+        }
       }
 
       // Racing
