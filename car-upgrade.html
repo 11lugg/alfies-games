@@ -94,6 +94,7 @@
         left: 60px;
         font-size: 2.5rem;
         transition: transform 0.1s;
+        transform: scaleX(-1);
       }
 
       .car.racing {
@@ -101,8 +102,8 @@
       }
 
       @keyframes carBounce {
-        from { transform: translateY(0); }
-        to { transform: translateY(-3px); }
+        from { transform: scaleX(-1) translateY(0); }
+        to { transform: scaleX(-1) translateY(-3px); }
       }
 
       .speed-display {
