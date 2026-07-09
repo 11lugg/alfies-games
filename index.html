@@ -32,32 +32,81 @@
         list-style: none;
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 1.25rem;
+        width: 100%;
+        max-width: 360px;
       }
 
       a {
-        display: block;
-        padding: 1rem 2rem;
-        background: #16213e;
-        border: 2px solid #0f3460;
-        border-radius: 8px;
-        color: #e94560;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+        border: 2px solid #1a4a8a;
+        border-radius: 14px;
+        color: #fff;
         text-decoration: none;
-        font-size: 1.25rem;
-        transition: background 0.2s, transform 0.2s;
+        font-size: 1.2rem;
+        font-weight: 600;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
       }
 
       a:hover {
-        background: #0f3460;
-        transform: scale(1.03);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(233, 69, 96, 0.3);
+        border-color: #e94560;
+        background: linear-gradient(135deg, #1a2a4e 0%, #163d6e 100%);
+      }
+
+      a:active {
+        transform: translateY(0) scale(0.98);
+      }
+
+      .game-icon {
+        font-size: 2rem;
+        line-height: 1;
+      }
+
+      .game-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .game-title {
+        color: #fff;
+      }
+
+      .game-desc {
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: #8899aa;
       }
     </style>
   </head>
   <body>
     <h1>🎮 Alfie's Games</h1>
     <ul>
-      <li><a href="maze-game.html">Man United Maze</a></li>
-      <li><a href="snake-game.html">Snake</a></li>
+      <li>
+        <a href="maze-game.html">
+          <span class="game-icon">⚽</span>
+          <span class="game-info">
+            <span class="game-title">Man United Maze</span>
+            <span class="game-desc">Dribble to the trophy</span>
+          </span>
+        </a>
+      </li>
+      <li>
+        <a href="snake-game.html">
+          <span class="game-icon">🐍</span>
+          <span class="game-info">
+            <span class="game-title">Snake</span>
+            <span class="game-desc">Classic snake with wall wrapping</span>
+          </span>
+        </a>
+      </li>
     </ul>
   </body>
 </html>
