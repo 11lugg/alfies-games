@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Car Upgrade Racer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #1a1a2e;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 12px;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 4px;
+        color: #ffd700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+      }
+
+      .subtitle {
+        font-size: 0.8rem;
+        color: #888;
+        margin-bottom: 12px;
+      }
+
+      .stats-bar {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+
+      .stats-bar span {
+        color: #aaa;
+      }
+
+      .stats-bar strong {
+        color: #00e5ff;
+      }
+
+      .game-area {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        height: 200px;
+        background: #2d2d44;
+        border-radius: 12px;
+        border: 2px solid #3d3d5c;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      .road {
+        position: absolute;
+        bottom: 40px;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #555;
+      }
+
+      .road-line {
+        position: absolute;
+        bottom: 41px;
+        height: 2px;
+        width: 30px;
+        background: #ffd700;
+        animation: roadScroll linear infinite;
+      }
+
+      @keyframes roadScroll {
+        from { transform: translateX(420px); }
+        to { transform: translateX(-40px); }
+      }
+
+      .car {
+        position: absolute;
+        bottom: 44px;
+        left: 60px;
+        font-size: 2.5rem;
+        transition: transform 0.1s;
+      }
+
+      .car.racing {
+        animation: carBounce 0.3s ease-in-out infinite alternate;
+      }
+
+      @keyframes carBounce {
+        from { transform: translateY(0); }
+        to { transform: translateY(-3px); }
+      }
+
+      .speed-display {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        font-size: 2rem;
+        font-weight: 900;
+        color: #00e5ff;
+        text-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+      }
+
+      .speed-display small {
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: #888;
+      }
+
+      .race-btn {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 12px 28px;
+        border: 2px solid #00e5ff;
+        border-radius: 8px;
+        background: #1a1a2e;
+        color: #00e5ff;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .race-btn:hover {
+        background: #00e5ff;
+        color: #1a1a2e;
+      }
+
+      .race-btn.hidden {
+        display: none;
+      }
+
+      .result {
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #ffd700;
+      }
+
+      .upgrades {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        width: 100%;
+        max-width: 400px;
+        margin-bottom: 12px;
+      }
+
+      .upgrade-card {
+        background: #2d2d44;
+        border: 2px solid #3d3d5c;
+        border-radius: 10px;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .upgrade-card:hover {
+        border-color: #00e5ff;
+        transform: translateY(-2px);
+      }
+
+      .upgrade-card.maxed {
+        opacity: 0.5;
+        pointer-events: none;
+        border-color: #555;
+      }
+
+      .upgrade-card .icon {
+        font-size: 1.5rem;
+        margin-bottom: 4px;
+      }
+
+      .upgrade-card .name {
+        font-size: 0.85rem;
+        color: #ddd;
+        margin-bottom: 4px;
+      }
+
+      .upgrade-card .level {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 6px;
+      }
+
+      .upgrade-card .cost {
+        font-size: 0.85rem;
+        color: #ffd700;
+        font-weight: 700;
+      }
+
+      .level-bar {
+        height: 4px;
+        background: #1a1a2e;
+        border-radius: 2px;
+        margin-top: 6px;
+        overflow: hidden;
+      }
+
+      .level-bar-fill {
+        height: 100%;
+        background: #00e5ff;
+        border-radius: 2px;
+        transition: width 0.3s;
+      }
+
+      .garage {
+        width: 100%;
+        max-width: 400px;
+        background: #2d2d44;
+        border-radius: 10px;
+        border: 2px solid #3d3d5c;
+        padding: 12px;
+        text-align: center;
+      }
+
+      .garage h3 {
+        font-size: 0.9rem;
+        color: #888;
+        margin-bottom: 8px;
+      }
+
+      .car-select {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .car-option {
+        padding: 8px 12px;
+        border: 2px solid #3d3d5c;
+        border-radius: 8px;
+        background: #1a1a2e;
+        cursor: pointer;
+        font-size: 1.5rem;
+        transition: all 0.2s;
+      }
+
+      .car-option.active {
+        border-color: #ffd700;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+      }
+
+      .car-option.locked {
+        opacity: 0.3;
+        position: relative;
+      }
+
+      .car-option.locked::after {
+        content: "🔒";
+        font-size: 0.8rem;
+        position: absolute;
+        top: -4px;
+        right: -4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🏎️ Car Upgrade Racer</h1>
+    <div class="subtitle">Race, earn coins, upgrade, go faster!</div>
+    <div class="stats-bar">
+      <span>💰 <strong id="coins">0</strong></span>
+      <span>🏁 Races: <strong id="races">0</strong></span>
+      <span>🏆 Best: <strong id="best-speed">0</strong> km/h</span>
+    </div>
+
+    <div class="game-area" id="game-area">
+      <div class="road"></div>
+      <div class="car" id="car">🚗</div>
+      <div class="speed-display"><span id="speed">0</span> <small>km/h</small></div>
+      <div class="result" id="result"></div>
+      <button class="race-btn" id="race-btn">🏁 Race!</button>
+    </div>
+
+    <div class="upgrades" id="upgrades"></div>
+
+    <div class="garage">
+      <h3>🏠 Garage</h3>
+      <div class="car-select" id="car-select"></div>
+    </div>
+
+    <script>
+      const coinsEl = document.getElementById("coins");
+      const racesEl = document.getElementById("races");
+      const bestSpeedEl = document.getElementById("best-speed");
+      const speedEl = document.getElementById("speed");
+      const carEl = document.getElementById("car");
+      const resultEl = document.getElementById("result");
+      const raceBtnEl = document.getElementById("race-btn");
+      const upgradesEl = document.getElementById("upgrades");
+      const carSelectEl = document.getElementById("car-select");
+      const gameAreaEl = document.getElementById("game-area");
+
+      const CARS = [
+        { emoji: "🚗", name: "Starter", cost: 0, baseSpeed: 60 },
+        { emoji: "🚙", name: "SUV", cost: 100, baseSpeed: 80 },
+        { emoji: "🏎️", name: "Sports Car", cost: 500, baseSpeed: 120 },
+        { emoji: "🚀", name: "Rocket", cost: 2000, baseSpeed: 200 },
+        { emoji: "🛸", name: "UFO", cost: 10000, baseSpeed: 350 },
+      ];
+
+      const UPGRADES = [
+        { id: "engine", name: "Engine", icon: "⚙️", maxLevel: 20, baseCost: 20, speedPer: 8 },
+        { id: "turbo", name: "Turbo", icon: "💨", maxLevel: 15, baseCost: 40, speedPer: 12 },
+        { id: "nitro", name: "Nitro", icon: "🔥", maxLevel: 10, baseCost: 80, speedPer: 20 },
+        { id: "tires", name: "Tires", icon: "🛞", maxLevel: 20, baseCost: 15, speedPer: 5 },
+      ];
+
+      // Game state
+      let state = loadState();
+
+      function defaultState() {
+        return {
+          coins: 0,
+          races: 0,
+          bestSpeed: 0,
+          currentCar: 0,
+          unlockedCars: [true, false, false, false, false],
+          upgrades: { engine: 0, turbo: 0, nitro: 0, tires: 0 },
+        };
+      }
+
+      function loadState() {
+        try {
+          const saved = localStorage.getItem("car-upgrade-state");
+          if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return defaultState();
+      }
+
+      function saveState() {
+        localStorage.setItem("car-upgrade-state", JSON.stringify(state));
+      }
+
+      function getMaxSpeed() {
+        const car = CARS[state.currentCar];
+        let speed = car.baseSpeed;
+        for (const up of UPGRADES) {
+          speed += state.upgrades[up.id] * up.speedPer;
+        }
+        return speed;
+      }
+
+      function getUpgradeCost(upgrade) {
+        const level = state.upgrades[upgrade.id];
+        return Math.floor(upgrade.baseCost * Math.pow(1.4, level));
+      }
+
+      function updateUI() {
+        coinsEl.textContent = state.coins;
+        racesEl.textContent = state.races;
+        bestSpeedEl.textContent = state.bestSpeed;
+        carEl.textContent = CARS[state.currentCar].emoji;
+        renderUpgrades();
+        renderGarage();
+      }
+
+      function renderUpgrades() {
+        upgradesEl.innerHTML = "";
+        for (const up of UPGRADES) {
+          const level = state.upgrades[up.id];
+          const cost = getUpgradeCost(up);
+          const maxed = level >= up.maxLevel;
+
+          const card = document.createElement("div");
+          card.className = "upgrade-card" + (maxed ? " maxed" : "");
+          card.innerHTML = `
+            <div class="icon">${up.icon}</div>
+            <div class="name">${up.name}</div>
+            <div class="level">Lv ${level}/${up.maxLevel}</div>
+            <div class="cost">${maxed ? "MAXED" : "💰 " + cost}</div>
+            <div class="level-bar"><div class="level-bar-fill" style="width:${(level / up.maxLevel) * 100}%"></div></div>
+          `;
+
+          if (!maxed) {
+            card.addEventListener("click", () => buyUpgrade(up));
+          }
+
+          upgradesEl.appendChild(card);
+        }
+      }
+
+      function renderGarage() {
+        carSelectEl.innerHTML = "";
+        CARS.forEach((car, idx) => {
+          const btn = document.createElement("div");
+          const unlocked = state.unlockedCars[idx];
+          btn.className = "car-option" +
+            (idx === state.currentCar ? " active" : "") +
+            (!unlocked ? " locked" : "");
+          btn.textContent = car.emoji;
+          btn.title = unlocked ? car.name : `${car.name} — 💰 ${car.cost}`;
+
+          btn.addEventListener("click", () => {
+            if (unlocked) {
+              state.currentCar = idx;
+              saveState();
+              updateUI();
+            } else if (state.coins >= car.cost) {
+              state.coins -= car.cost;
+              state.unlockedCars[idx] = true;
+              state.currentCar = idx;
+              saveState();
+              updateUI();
+            }
+          });
+
+          carSelectEl.appendChild(btn);
+        });
+      }
+
+      function buyUpgrade(upgrade) {
+        const cost = getUpgradeCost(upgrade);
+        if (state.coins < cost) {
+          resultEl.textContent = "Not enough coins!";
+          setTimeout(() => { resultEl.textContent = ""; }, 1500);
+          return;
+        }
+        state.coins -= cost;
+        state.upgrades[upgrade.id]++;
+        saveState();
+        updateUI();
+      }
+
+      // Racing
+      let racing = false;
+
+      function startRace() {
+        if (racing) return;
+        racing = true;
+        raceBtnEl.classList.add("hidden");
+        carEl.classList.add("racing");
+        resultEl.textContent = "";
+
+        const maxSpeed = getMaxSpeed();
+        // Simulate acceleration
+        let currentSpeed = 0;
+        const targetSpeed = maxSpeed * (0.85 + Math.random() * 0.2); // some variance
+        const duration = 2500;
+        const startTime = Date.now();
+
+        // Add road lines
+        const lines = [];
+        for (let i = 0; i < 6; i++) {
+          const line = document.createElement("div");
+          line.className = "road-line";
+          line.style.animationDuration = "1.5s";
+          line.style.animationDelay = (i * 0.25) + "s";
+          gameAreaEl.appendChild(line);
+          lines.push(line);
+        }
+
+        function animate() {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Ease out
+          currentSpeed = Math.floor(targetSpeed * (1 - Math.pow(1 - progress, 3)));
+          speedEl.textContent = currentSpeed;
+
+          // Speed up road lines as car accelerates
+          const lineDuration = Math.max(0.2, 1.5 - (progress * 1.3));
+          lines.forEach(l => l.style.animationDuration = lineDuration + "s");
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            finishRace(currentSpeed, lines);
+          }
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      function finishRace(finalSpeed, lines) {
+        racing = false;
+        carEl.classList.remove("racing");
+        raceBtnEl.classList.remove("hidden");
+
+        // Remove road lines
+        lines.forEach(l => l.remove());
+
+        // Earnings based on speed
+        const earned = Math.floor(finalSpeed * 0.3) + 5;
+        state.coins += earned;
+        state.races++;
+        if (finalSpeed > state.bestSpeed) {
+          state.bestSpeed = finalSpeed;
+        }
+        saveState();
+
+        resultEl.textContent = `+💰${earned}  |  ${finalSpeed} km/h`;
+        setTimeout(() => { resultEl.textContent = ""; }, 3000);
+
+        updateUI();
+      }
+
+      raceBtnEl.addEventListener("click", startRace);
+
+      // Init
+      updateUI();
+      speedEl.textContent = "0";
+    </script>
+  </body>
+</html>
