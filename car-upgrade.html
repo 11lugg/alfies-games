@@ -594,21 +594,22 @@
         for (let i = 0; i < 6; i++) {
           const line = document.createElement("div");
           line.className = "road-line";
-          line.style.animationDuration = "1.5s";
-          line.style.animationDelay = (i * 0.25) + "s";
+          line.style.animationDuration = "3s";
+          line.style.animationDelay = (i * 0.5) + "s";
           gameAreaEl.appendChild(line);
           lines.push(line);
         }
 
-        // Add speed lines
+        // Add speed lines (hidden until speed > 40%)
         const speedLines = [];
         for (let i = 0; i < 8; i++) {
           const sl = document.createElement("div");
           sl.className = "speed-line";
           sl.style.top = (20 + Math.random() * 120) + "px";
           sl.style.width = (40 + Math.random() * 60) + "px";
-          sl.style.animationDuration = (0.4 + Math.random() * 0.3) + "s";
+          sl.style.animationDuration = "1s";
           sl.style.animationDelay = (Math.random() * 0.5) + "s";
+          sl.style.opacity = "0";
           gameAreaEl.appendChild(sl);
           speedLines.push(sl);
         }
@@ -621,8 +622,8 @@
           const tree = document.createElement("div");
           tree.className = "tree";
           tree.textContent = treeEmojis[Math.floor(Math.random() * treeEmojis.length)];
-          tree.style.animationDuration = "1.2s";
-          tree.style.animationDelay = (i * 0.4) + "s";
+          tree.style.animationDuration = "2.5s";
+          tree.style.animationDelay = (i * 0.5) + "s";
           treesContainer.appendChild(tree);
         }
 
@@ -634,8 +635,8 @@
           bld.className = "building";
           bld.style.width = (15 + Math.random() * 20) + "px";
           bld.style.height = (20 + Math.random() * 30) + "px";
-          bld.style.animationDuration = "3s";
-          bld.style.animationDelay = (i * 0.8) + "s";
+          bld.style.animationDuration = "6s";
+          bld.style.animationDelay = (i * 1.5) + "s";
           buildingsContainer.appendChild(bld);
         }
 
@@ -652,15 +653,25 @@
         function animate() {
           const elapsed = Date.now() - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          currentSpeed = Math.floor(targetSpeed * (1 - Math.pow(1 - progress, 3)));
+          // Linear acceleration based on progress
+          currentSpeed = Math.floor(targetSpeed * progress);
           speedEl.textContent = currentSpeed;
 
-          // Speed up all animations as car accelerates
-          const speedFactor = Math.max(0.15, 1.5 - (progress * 1.4));
-          lines.forEach(l => l.style.animationDuration = speedFactor + "s");
-          document.querySelectorAll(".tree").forEach(t => t.style.animationDuration = (speedFactor * 0.8) + "s");
-          document.querySelectorAll(".building").forEach(b => b.style.animationDuration = (speedFactor * 2) + "s");
-          speedLines.forEach(sl => sl.style.animationDuration = (speedFactor * 0.3) + "s");
+          // Animation speed scales linearly with current speed
+          // At 0 speed = very slow (5s), at max speed = very fast
+          const speedRatio = currentSpeed / targetSpeed; // 0 to 1
+          const roadDuration = Math.max(0.2, 3 - (speedRatio * 2.8));
+          const treeDuration = Math.max(0.15, 2.5 - (speedRatio * 2.35));
+          const buildingDuration = Math.max(0.5, 6 - (speedRatio * 5.5));
+          const speedLineDuration = Math.max(0.1, 1 - (speedRatio * 0.9));
+
+          lines.forEach(l => l.style.animationDuration = roadDuration + "s");
+          document.querySelectorAll(".tree").forEach(t => t.style.animationDuration = treeDuration + "s");
+          document.querySelectorAll(".building").forEach(b => b.style.animationDuration = buildingDuration + "s");
+          speedLines.forEach(sl => {
+            sl.style.animationDuration = speedLineDuration + "s";
+            sl.style.opacity = speedRatio > 0.4 ? "1" : "0";
+          });
 
           if (progress < 1) {
             requestAnimationFrame(animate);
