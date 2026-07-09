@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PSG Block Blast</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0d1b3e;
+        background-image: radial-gradient(ellipse at top, #1a2d5a 0%, #0d1b3e 70%);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        padding: 16px;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 4px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      }
+
+      .subtitle {
+        font-size: 0.85rem;
+        color: #e94560;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
+      }
+
+      .score-bar {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 12px;
+        font-size: 1rem;
+      }
+
+      .score-bar span {
+        color: #aac4e8;
+      }
+
+      .score-bar strong {
+        color: #ffd700;
+      }
+
+      #board {
+        display: grid;
+        gap: 2px;
+        background: #152244;
+        border: 3px solid #e94560;
+        border-radius: 8px;
+        padding: 4px;
+        box-shadow: 0 0 30px rgba(233, 69, 96, 0.2);
+      }
+
+      .cell {
+        width: var(--cell-size);
+        height: var(--cell-size);
+        border-radius: 4px;
+        background: #1a2d5a;
+        transition: background 0.15s;
+      }
+
+      .cell.filled-0 { background: #002f6c; } /* PSG Dark Blue */
+      .cell.filled-1 { background: #e94560; } /* PSG Red */
+      .cell.filled-2 { background: #ffd700; } /* Gold accent */
+      .cell.filled-3 { background: #4fc3f7; } /* Light blue */
+      .cell.filled-4 { background: #fff; }    /* White */
+
+      .cell.preview {
+        opacity: 0.5;
+        box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.4);
+      }
+
+      .cell.clearing {
+        animation: clearPulse 0.3s ease-out;
+      }
+
+      @keyframes clearPulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.15); opacity: 0.7; }
+        100% { transform: scale(0); opacity: 0; }
+      }
+
+      #pieces-area {
+        display: flex;
+        gap: 16px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .piece-holder {
+        display: grid;
+        gap: 2px;
+        padding: 8px;
+        border: 2px solid #1a2d5a;
+        border-radius: 8px;
+        background: #0a1428;
+        cursor: grab;
+        touch-action: none;
+        transition: border-color 0.2s, transform 0.2s;
+      }
+
+      .piece-holder.selected {
+        border-color: #ffd700;
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+      }
+
+      .piece-holder.used {
+        opacity: 0.2;
+        pointer-events: none;
+      }
+
+      .piece-cell {
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+      }
+
+      .piece-cell.filled-0 { background: #002f6c; }
+      .piece-cell.filled-1 { background: #e94560; }
+      .piece-cell.filled-2 { background: #ffd700; }
+      .piece-cell.filled-3 { background: #4fc3f7; }
+      .piece-cell.filled-4 { background: #fff; }
+      .piece-cell.empty { background: transparent; }
+
+      #message {
+        margin-top: 12px;
+        font-size: 1.1rem;
+        min-height: 1.4em;
+        color: #ffd700;
+        font-weight: 700;
+      }
+
+      .game-over-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      .game-over-overlay.active {
+        display: flex;
+      }
+
+      .game-over-overlay h2 {
+        font-size: 2.5rem;
+        color: #e94560;
+        margin-bottom: 0.5rem;
+      }
+
+      .game-over-overlay p {
+        font-size: 1.2rem;
+        color: #aac4e8;
+        margin-bottom: 1.5rem;
+      }
+
+      .game-over-overlay button {
+        padding: 12px 32px;
+        border: 2px solid #ffd700;
+        border-radius: 8px;
+        background: #1a2d5a;
+        color: #ffd700;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .game-over-overlay button:hover {
+        background: #ffd700;
+        color: #0d1b3e;
+      }
+
+      .instructions {
+        margin-top: 12px;
+        font-size: 0.8rem;
+        color: #667799;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔵🔴 PSG Block Blast ⚽</h1>
+    <div class="subtitle">ICI C'EST PARIS!</div>
+    <div class="score-bar">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Best: <strong id="best">0</strong></span>
+    </div>
+    <div id="board"></div>
+    <div id="pieces-area"></div>
+    <div id="message"></div>
+    <div class="game-over-overlay" id="game-over">
+      <h2>Full Time!</h2>
+      <p>Final Score: <span id="final-score">0</span></p>
+      <button id="restart-btn">⚽ New Match</button>
+    </div>
+    <div class="instructions">Tap a piece, then tap the board to place it. Clear rows & columns to score!</div>
+
+    <script>
+      const GRID = 8;
+      const COLORS = 5;
+      const boardEl = document.getElementById("board");
+      const piecesEl = document.getElementById("pieces-area");
+      const scoreEl = document.getElementById("score");
+      const bestEl = document.getElementById("best");
+      const messageEl = document.getElementById("message");
+      const gameOverEl = document.getElementById("game-over");
+      const finalScoreEl = document.getElementById("final-score");
+      const restartBtn = document.getElementById("restart-btn");
+
+      let grid = [];
+      let score = 0;
+      let best = parseInt(localStorage.getItem("psg-block-best") || "0");
+      let pieces = [];
+      let selectedPiece = null;
+
+      // Piece shapes (relative coords)
+      const SHAPES = [
+        [[0,0],[1,0],[2,0]], // I-3 horizontal
+        [[0,0],[0,1],[0,2]], // I-3 vertical
+        [[0,0],[1,0],[2,0],[3,0]], // I-4 horizontal
+        [[0,0],[0,1],[0,2],[0,3]], // I-4 vertical
+        [[0,0],[1,0],[0,1],[1,1]], // O-2x2
+        [[0,0],[1,0],[1,1]], // L small
+        [[0,0],[0,1],[1,0]], // J small
+        [[0,0],[1,0],[2,0],[2,1]], // L big
+        [[0,0],[0,1],[0,2],[1,0]], // J big
+        [[0,0],[1,0],[2,0],[0,1]], // T-ish
+        [[0,0],[1,0],[1,1],[2,1]], // S
+        [[0,0],[0,1],[1,1],[1,2]], // Z
+        [[0,0]], // single
+        [[0,0],[1,0]], // I-2 horizontal
+        [[0,0],[0,1]], // I-2 vertical
+        [[0,0],[1,0],[2,0],[0,1],[0,2]], // big L
+        [[0,0],[1,0],[2,0],[2,1],[2,2]], // big J
+        [[0,0],[0,1],[0,2],[1,0],[2,0]], // corner
+        [[0,0],[1,0],[2,0],[1,1],[1,2]], // T big
+        [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], // 3x3
+      ];
+
+      function init() {
+        grid = Array.from({ length: GRID }, () => Array(GRID).fill(-1));
+        score = 0;
+        bestEl.textContent = best;
+        scoreEl.textContent = 0;
+        messageEl.textContent = "";
+        gameOverEl.classList.remove("active");
+        selectedPiece = null;
+        generatePieces();
+        renderBoard();
+      }
+
+      function setCellSize() {
+        const maxSize = Math.min(400, window.innerWidth - 48);
+        const cellSize = Math.floor((maxSize - (GRID - 1) * 2 - 8) / GRID);
+        document.documentElement.style.setProperty("--cell-size", cellSize + "px");
+        boardEl.style.gridTemplateColumns = `repeat(${GRID}, ${cellSize}px)`;
+      }
+
+      function renderBoard() {
+        setCellSize();
+        boardEl.innerHTML = "";
+        for (let r = 0; r < GRID; r++) {
+          for (let c = 0; c < GRID; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            if (grid[r][c] >= 0) {
+              cell.classList.add("filled-" + grid[r][c]);
+            }
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+            cell.addEventListener("click", () => placePiece(r, c));
+            boardEl.appendChild(cell);
+          }
+        }
+      }
+
+      function generatePieces() {
+        pieces = [];
+        for (let i = 0; i < 3; i++) {
+          const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+          const color = Math.floor(Math.random() * COLORS);
+          pieces.push({ shape, color, used: false });
+        }
+        renderPieces();
+      }
+
+      function renderPieces() {
+        piecesEl.innerHTML = "";
+        pieces.forEach((piece, idx) => {
+          const maxR = Math.max(...piece.shape.map(([r]) => r)) + 1;
+          const maxC = Math.max(...piece.shape.map(([, c]) => c)) + 1;
+
+          const holder = document.createElement("div");
+          holder.className = "piece-holder";
+          if (piece.used) holder.classList.add("used");
+          if (selectedPiece === idx) holder.classList.add("selected");
+          holder.style.gridTemplateColumns = `repeat(${maxC}, 20px)`;
+          holder.style.gridTemplateRows = `repeat(${maxR}, 20px)`;
+
+          for (let r = 0; r < maxR; r++) {
+            for (let c = 0; c < maxC; c++) {
+              const cell = document.createElement("div");
+              cell.className = "piece-cell";
+              if (piece.shape.some(([sr, sc]) => sr === r && sc === c)) {
+                cell.classList.add("filled-" + piece.color);
+              } else {
+                cell.classList.add("empty");
+              }
+              holder.appendChild(cell);
+            }
+          }
+
+          holder.addEventListener("click", () => {
+            if (piece.used) return;
+            selectedPiece = selectedPiece === idx ? null : idx;
+            renderPieces();
+            renderBoard();
+            showPreview();
+          });
+
+          piecesEl.appendChild(holder);
+        });
+      }
+
+      function canPlace(shape, startR, startC) {
+        for (const [dr, dc] of shape) {
+          const r = startR + dr;
+          const c = startC + dc;
+          if (r < 0 || r >= GRID || c < 0 || c >= GRID) return false;
+          if (grid[r][c] >= 0) return false;
+        }
+        return true;
+      }
+
+      function placePiece(startR, startC) {
+        if (selectedPiece === null) return;
+        const piece = pieces[selectedPiece];
+        if (piece.used) return;
+
+        if (!canPlace(piece.shape, startR, startC)) {
+          messageEl.textContent = "❌ Can't place there!";
+          setTimeout(() => { messageEl.textContent = ""; }, 1000);
+          return;
+        }
+
+        // Place
+        for (const [dr, dc] of piece.shape) {
+          grid[startR + dr][startC + dc] = piece.color;
+        }
+
+        score += piece.shape.length;
+        piece.used = true;
+        selectedPiece = null;
+
+        // Check for clears
+        clearLines();
+
+        scoreEl.textContent = score;
+        if (score > best) {
+          best = score;
+          bestEl.textContent = best;
+          localStorage.setItem("psg-block-best", best.toString());
+        }
+
+        renderBoard();
+        renderPieces();
+
+        // Check if all pieces used -> new set
+        if (pieces.every((p) => p.used)) {
+          generatePieces();
+        }
+
+        // Check game over
+        if (isGameOver()) {
+          setTimeout(() => {
+            finalScoreEl.textContent = score;
+            gameOverEl.classList.add("active");
+          }, 400);
+        }
+      }
+
+      function clearLines() {
+        const rowsToClear = [];
+        const colsToClear = [];
+
+        for (let r = 0; r < GRID; r++) {
+          if (grid[r].every((c) => c >= 0)) rowsToClear.push(r);
+        }
+        for (let c = 0; c < GRID; c++) {
+          if (grid.every((row) => row[c] >= 0)) colsToClear.push(c);
+        }
+
+        const totalCleared = rowsToClear.length + colsToClear.length;
+        if (totalCleared === 0) return;
+
+        // Bonus for multiple clears
+        score += totalCleared * GRID * 2;
+        if (totalCleared > 1) {
+          score += totalCleared * 10;
+          messageEl.textContent = totalCleared >= 3 ? "⚽ HAT TRICK! 🎩" : "🔥 COMBO!";
+        } else {
+          messageEl.textContent = "✨ Cleared!";
+        }
+        setTimeout(() => { messageEl.textContent = ""; }, 1500);
+
+        for (const r of rowsToClear) {
+          for (let c = 0; c < GRID; c++) grid[r][c] = -1;
+        }
+        for (const c of colsToClear) {
+          for (let r = 0; r < GRID; r++) grid[r][c] = -1;
+        }
+      }
+
+      function isGameOver() {
+        for (const piece of pieces) {
+          if (piece.used) continue;
+          for (let r = 0; r < GRID; r++) {
+            for (let c = 0; c < GRID; c++) {
+              if (canPlace(piece.shape, r, c)) return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      function showPreview() {
+        // Preview handled via hover in future; for now board click places
+      }
+
+      restartBtn.addEventListener("click", init);
+      window.addEventListener("resize", renderBoard);
+
+      init();
+    </script>
+  </body>
+</html>
