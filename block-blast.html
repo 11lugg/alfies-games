@@ -239,7 +239,7 @@
       <p>Final Score: <span id="final-score">0</span></p>
       <button id="restart-btn">⚽ New Match</button>
     </div>
-    <div class="instructions">Drag a piece onto the board (desktop), or tap a piece then tap the board (mobile). Clear rows & columns to score!</div>
+    <div class="instructions">Drag a piece onto the board to place it. Clear rows & columns to score!</div>
 
     <script>
       const GRID = 8;
@@ -328,12 +328,6 @@
             cell.dataset.r = r;
             cell.dataset.c = c;
             cell.addEventListener("click", () => placePiece(r, c));
-            cell.addEventListener("touchend", (e) => {
-              if (selectedPiece !== null && !dragging) {
-                e.preventDefault();
-                placePiece(r, c);
-              }
-            });
             cell.addEventListener("mouseenter", () => {
               if (!dragging) showPreview(r, c);
             });
@@ -382,20 +376,18 @@
             }
           }
 
-          // Mouse drag (desktop only)
+          // Mouse drag (desktop)
           holder.addEventListener("mousedown", (e) => {
             if (piece.used) return;
             e.preventDefault();
             startDrag(idx, e.clientX, e.clientY);
           });
 
-          // Touch: tap to select (no drag on mobile — tap board to place)
-          holder.addEventListener("touchend", (e) => {
+          // Touch drag (mobile)
+          holder.addEventListener("touchstart", (e) => {
             if (piece.used) return;
-            e.preventDefault();
-            selectedPiece = selectedPiece === idx ? null : idx;
-            renderPieces();
-            renderBoard();
+            const touch = e.touches[0];
+            startDrag(idx, touch.clientX, touch.clientY);
           });
 
           piecesEl.appendChild(holder);
@@ -463,15 +455,12 @@
         dragGhost.style.left = x + "px";
         dragGhost.style.top = y + "px";
 
-        // Find board cell under pointer (offset down since ghost is above finger)
-        const probeY = y + 30;
-        const el = document.elementFromPoint(x, probeY) || document.elementFromPoint(x, y);
-        if (el && el.dataset && el.dataset.r !== undefined) {
-          const r = parseInt(el.dataset.r);
-          const c = parseInt(el.dataset.c);
-          if (dragBoardTarget === null || dragBoardTarget.r !== r || dragBoardTarget.c !== c) {
-            dragBoardTarget = { r, c };
-            showPreview(r, c);
+        // Use board bounding rect to calculate which cell the finger is over
+        const target = getBoardCellFromPoint(x, y);
+        if (target) {
+          if (dragBoardTarget === null || dragBoardTarget.r !== target.r || dragBoardTarget.c !== target.c) {
+            dragBoardTarget = target;
+            showPreview(target.r, target.c);
           }
         } else {
           if (dragBoardTarget !== null) {
@@ -481,21 +470,37 @@
         }
       }
 
+      function getBoardCellFromPoint(x, y) {
+        const rect = boardEl.getBoundingClientRect();
+        const cellSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell-size")) || 20;
+        const gap = 2;
+        const padding = 4;
+
+        const localX = x - rect.left - padding;
+        const localY = y - rect.top - padding;
+
+        if (localX < 0 || localY < 0 || localX > rect.width - padding * 2 || localY > rect.height - padding * 2) {
+          return null;
+        }
+
+        const c = Math.floor(localX / (cellSize + gap));
+        const r = Math.floor(localY / (cellSize + gap));
+
+        if (r < 0 || r >= GRID || c < 0 || c >= GRID) return null;
+        return { r, c };
+      }
+
       function endDrag(x, y) {
         if (!dragging) return;
         const wasDragStarted = dragStarted;
         dragging = false;
         dragStarted = false;
-
-        if (dragGhost) dragGhost.style.display = "none";
-        const probeY = y + 30;
-        const el = document.elementFromPoint(x, probeY) || document.elementFromPoint(x, y);
         removeDragGhost();
 
-        if (wasDragStarted && el && el.dataset && el.dataset.r !== undefined) {
-          const r = parseInt(el.dataset.r);
-          const c = parseInt(el.dataset.c);
-          placePiece(r, c);
+        const target = getBoardCellFromPoint(x, y);
+
+        if (wasDragStarted && target) {
+          placePiece(target.r, target.c);
         } else if (!wasDragStarted) {
           // Was just a tap — toggle selection
           const idx = dragPieceIdx;
