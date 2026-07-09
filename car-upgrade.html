@@ -662,6 +662,7 @@
         const targetSpeed = maxSpeed * (0.85 + Math.random() * 0.2);
         const duration = 2500;
         const startTime = Date.now();
+        const theme = CARS[state.currentCar].theme;
 
         // Add road lines
         const lines = [];
@@ -693,7 +694,6 @@
         // Add trees/scenery based on theme
         const treesContainer = document.getElementById("trees");
         treesContainer.innerHTML = "";
-        const theme = CARS[state.currentCar].theme;
         let sceneryEmojis;
         switch (theme) {
           case "highway": sceneryEmojis = ["🏠", "🏢", "🏪", "⛽", "🚏"]; break;
