@@ -238,19 +238,12 @@
         bottom: 34px;
         left: 60px;
         font-size: 2.5rem;
-        transform: scaleX(-1);
         z-index: 10;
         transition: left 2.5s ease-out;
       }
 
       .car.racing {
-        animation: carBounce 0.3s ease-in-out infinite alternate;
         left: 70%;
-      }
-
-      @keyframes carBounce {
-        from { transform: translateY(0); }
-        to { transform: translateY(-2px); }
       }
 
       /* Exhaust / dust particles */
@@ -564,11 +557,10 @@
         area.classList.remove("theme-city", "theme-highway", "theme-racing", "theme-space", "theme-alien");
         area.classList.add("theme-" + theme);
 
-        // Rotate rocket/UFO to point right
+        // Set car orientation
+        // Car emojis face left, so flip them. Rocket faces up, rotate 90deg.
         if (theme === "space") {
-          carEl.style.transform = "rotate(-45deg)";
-        } else if (theme === "alien") {
-          carEl.style.transform = "scaleX(-1)";
+          carEl.style.transform = "rotate(90deg)";
         } else {
           carEl.style.transform = "scaleX(-1)";
         }
