@@ -191,12 +191,10 @@
       }
 
       function update() {
-        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-
-        // Wall collision
-        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-          return endGame();
-        }
+        const head = {
+          x: (snake[0].x + dx + tileCount) % tileCount,
+          y: (snake[0].y + dy + tileCount) % tileCount,
+        };
 
         // Self collision
         if (snake.some((s) => s.x === head.x && s.y === head.y)) {
