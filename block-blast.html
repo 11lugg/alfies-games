@@ -239,7 +239,7 @@
       <p>Final Score: <span id="final-score">0</span></p>
       <button id="restart-btn">⚽ New Match</button>
     </div>
-    <div class="instructions">Drag a piece onto the board, or tap to select then tap to place. Clear rows & columns to score!</div>
+    <div class="instructions">Drag a piece onto the board (desktop), or tap a piece then tap the board (mobile). Clear rows & columns to score!</div>
 
     <script>
       const GRID = 8;
@@ -328,6 +328,12 @@
             cell.dataset.r = r;
             cell.dataset.c = c;
             cell.addEventListener("click", () => placePiece(r, c));
+            cell.addEventListener("touchend", (e) => {
+              if (selectedPiece !== null && !dragging) {
+                e.preventDefault();
+                placePiece(r, c);
+              }
+            });
             cell.addEventListener("mouseenter", () => {
               if (!dragging) showPreview(r, c);
             });
@@ -376,19 +382,20 @@
             }
           }
 
-          // Mouse drag
+          // Mouse drag (desktop only)
           holder.addEventListener("mousedown", (e) => {
             if (piece.used) return;
             e.preventDefault();
             startDrag(idx, e.clientX, e.clientY);
           });
 
-          // Touch drag
-          holder.addEventListener("touchstart", (e) => {
+          // Touch: tap to select (no drag on mobile — tap board to place)
+          holder.addEventListener("touchend", (e) => {
             if (piece.used) return;
             e.preventDefault();
-            const touch = e.touches[0];
-            startDrag(idx, touch.clientX, touch.clientY);
+            selectedPiece = selectedPiece === idx ? null : idx;
+            renderPieces();
+            renderBoard();
           });
 
           piecesEl.appendChild(holder);
