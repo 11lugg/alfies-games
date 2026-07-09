@@ -142,7 +142,7 @@
         display: grid;
         gap: 2px;
         opacity: 0.85;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -110%);
       }
 
       .drag-ghost .piece-cell {
@@ -264,6 +264,10 @@
       let dragPieceIdx = null;
       let dragGhost = null;
       let dragBoardTarget = null;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let dragStarted = false;
+      const DRAG_THRESHOLD = 8;
 
       const SHAPES = [
         [[0,0],[1,0],[2,0]],
@@ -387,14 +391,6 @@
             startDrag(idx, touch.clientX, touch.clientY);
           });
 
-          // Tap fallback (select mode)
-          holder.addEventListener("click", (e) => {
-            if (piece.used || dragging) return;
-            selectedPiece = selectedPiece === idx ? null : idx;
-            renderPieces();
-            renderBoard();
-          });
-
           piecesEl.appendChild(holder);
         });
       }
@@ -403,9 +399,16 @@
 
       function startDrag(idx, x, y) {
         dragging = true;
+        dragStarted = false;
         dragPieceIdx = idx;
         selectedPiece = idx;
-        createDragGhost(idx, x, y);
+        dragStartX = x;
+        dragStartY = y;
+      }
+
+      function commitDrag(x, y) {
+        dragStarted = true;
+        createDragGhost(dragPieceIdx, x, y);
         renderPieces();
       }
 
@@ -440,13 +443,23 @@
       }
 
       function moveDragGhost(x, y) {
+        if (!dragging) return;
+
+        // Check if we've moved far enough to start the actual drag
+        if (!dragStarted) {
+          const dist = Math.abs(x - dragStartX) + Math.abs(y - dragStartY);
+          if (dist < DRAG_THRESHOLD) return;
+          commitDrag(x, y);
+        }
+
         if (!dragGhost) return;
         dragGhost.style.left = x + "px";
         dragGhost.style.top = y + "px";
 
-        // Find board cell under pointer
-        const el = document.elementFromPoint(x, y);
-        if (el && el.dataset.r !== undefined) {
+        // Find board cell under pointer (offset down since ghost is above finger)
+        const probeY = y + 30;
+        const el = document.elementFromPoint(x, probeY) || document.elementFromPoint(x, y);
+        if (el && el.dataset && el.dataset.r !== undefined) {
           const r = parseInt(el.dataset.r);
           const c = parseInt(el.dataset.c);
           if (dragBoardTarget === null || dragBoardTarget.r !== r || dragBoardTarget.c !== c) {
@@ -463,22 +476,28 @@
 
       function endDrag(x, y) {
         if (!dragging) return;
+        const wasDragStarted = dragStarted;
         dragging = false;
+        dragStarted = false;
 
-        // Try to place at the current board target
-        // Use elementFromPoint with ghost hidden
         if (dragGhost) dragGhost.style.display = "none";
-        const el = document.elementFromPoint(x, y);
-        if (dragGhost) dragGhost.style.display = "";
-
+        const probeY = y + 30;
+        const el = document.elementFromPoint(x, probeY) || document.elementFromPoint(x, y);
         removeDragGhost();
 
-        if (el && el.dataset.r !== undefined) {
+        if (wasDragStarted && el && el.dataset && el.dataset.r !== undefined) {
           const r = parseInt(el.dataset.r);
           const c = parseInt(el.dataset.c);
           placePiece(r, c);
+        } else if (!wasDragStarted) {
+          // Was just a tap — toggle selection
+          const idx = dragPieceIdx;
+          selectedPiece = selectedPiece === idx ? null : idx;
+          clearPreview();
+          renderPieces();
+          renderBoard();
         } else {
-          // Dropped outside board — deselect
+          // Dropped outside board
           selectedPiece = null;
           clearPreview();
           renderPieces();
