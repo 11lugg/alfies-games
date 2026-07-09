@@ -79,8 +79,12 @@
       .cell.filled-4 { background: #fff; }    /* White */
 
       .cell.preview {
-        opacity: 0.5;
-        box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.4);
+        opacity: 0.6;
+        box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.6);
+      }
+
+      .cell.invalid {
+        background: rgba(233, 69, 96, 0.4) !important;
       }
 
       .cell.clearing {
@@ -288,6 +292,9 @@
             cell.dataset.r = r;
             cell.dataset.c = c;
             cell.addEventListener("click", () => placePiece(r, c));
+            cell.addEventListener("mouseenter", () => showPreview(r, c));
+            cell.addEventListener("mouseleave", clearPreview);
+            cell.addEventListener("touchmove", handleTouchMove);
             boardEl.appendChild(cell);
           }
         }
@@ -442,8 +449,48 @@
         return true;
       }
 
-      function showPreview() {
-        // Preview handled via hover in future; for now board click places
+      function showPreview(startR, startC) {
+        clearPreview();
+        if (selectedPiece === null) return;
+        const piece = pieces[selectedPiece];
+        if (piece.used) return;
+
+        const valid = canPlace(piece.shape, startR, startC);
+
+        for (const [dr, dc] of piece.shape) {
+          const r = startR + dr;
+          const c = startC + dc;
+          if (r < 0 || r >= GRID || c < 0 || c >= GRID) continue;
+          const cell = boardEl.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+          if (cell) {
+            if (valid) {
+              cell.classList.add("preview", "filled-" + piece.color);
+            } else {
+              cell.classList.add("preview", "invalid");
+            }
+          }
+        }
+      }
+
+      function clearPreview() {
+        boardEl.querySelectorAll(".preview").forEach((cell) => {
+          cell.classList.remove("preview", "invalid", "filled-0", "filled-1", "filled-2", "filled-3", "filled-4");
+          // Re-add filled class if cell actually has a block
+          const r = parseInt(cell.dataset.r);
+          const c = parseInt(cell.dataset.c);
+          if (grid[r][c] >= 0) {
+            cell.classList.add("filled-" + grid[r][c]);
+          }
+        });
+      }
+
+      function handleTouchMove(e) {
+        if (selectedPiece === null) return;
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.dataset.r !== undefined) {
+          showPreview(parseInt(el.dataset.r), parseInt(el.dataset.c));
+        }
       }
 
       restartBtn.addEventListener("click", init);
