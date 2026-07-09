@@ -79,6 +79,11 @@
           #2a2a50 40px,
           #2a2a50 42px
         );
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .racing .bg-mountains {
         opacity: 0.4;
       }
 
@@ -90,6 +95,7 @@
         height: 50px;
         display: flex;
         align-items: flex-end;
+        pointer-events: none;
       }
 
       .building {
@@ -98,6 +104,11 @@
         background: #222240;
         border-radius: 2px 2px 0 0;
         animation: buildingScroll linear infinite;
+        opacity: 0;
+      }
+
+      .racing .building {
+        opacity: 1;
       }
 
       @keyframes buildingScroll {
@@ -118,6 +129,11 @@
         bottom: 0;
         font-size: 1.2rem;
         animation: treeScroll linear infinite;
+        opacity: 0;
+      }
+
+      .racing .tree {
+        opacity: 1;
       }
 
       @keyframes treeScroll {
