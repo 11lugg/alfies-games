@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake Game</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0a0a2a;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 8px;
+        color: #00ff88;
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      }
+
+      .score {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+        color: #88ccff;
+      }
+
+      canvas {
+        border: 3px solid #00ff88;
+        border-radius: 4px;
+        background: #111;
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        display: block;
+      }
+
+      .controls {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .controls-row {
+        display: flex;
+        gap: 4px;
+      }
+
+      .controls button {
+        width: 60px;
+        height: 60px;
+        border: 2px solid #00ff88;
+        border-radius: 10px;
+        background: #1a1a4a;
+        color: #00ff88;
+        font-size: 1.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+      }
+
+      .controls button:active {
+        background: #00ff88;
+        color: #0a0a2a;
+        transform: scale(0.92);
+      }
+
+      .game-over {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        padding: 2rem 3rem;
+        border-radius: 12px;
+        border: 2px solid #ff4444;
+        text-align: center;
+        display: none;
+      }
+
+      .game-over.active {
+        display: block;
+      }
+
+      .game-over h2 {
+        color: #ff4444;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .game-over p {
+        color: #ccc;
+        margin-bottom: 1rem;
+      }
+
+      .game-over button {
+        padding: 10px 24px;
+        border: 2px solid #00ff88;
+        border-radius: 6px;
+        background: #1a1a4a;
+        color: #00ff88;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .game-over button:hover {
+        background: #00ff88;
+        color: #0a0a2a;
+      }
+
+      .instructions {
+        margin-top: 12px;
+        font-size: 0.85rem;
+        color: #668899;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐍 Snake</h1>
+    <div class="score">Score: <span id="score">0</span></div>
+    <canvas id="game" width="400" height="400"></canvas>
+    <div class="game-over" id="game-over">
+      <h2>Game Over!</h2>
+      <p>Score: <span id="final-score">0</span></p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+    <div class="controls">
+      <div class="controls-row">
+        <button id="btn-up" aria-label="Move up">▲</button>
+      </div>
+      <div class="controls-row">
+        <button id="btn-left" aria-label="Move left">◀</button>
+        <button id="btn-down" aria-label="Move down">▼</button>
+        <button id="btn-right" aria-label="Move right">▶</button>
+      </div>
+    </div>
+    <div class="instructions">Use arrow keys or buttons to play</div>
+
+    <script>
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.getElementById("score");
+      const finalScoreEl = document.getElementById("final-score");
+      const gameOverEl = document.getElementById("game-over");
+      const restartBtn = document.getElementById("restart-btn");
+
+      const gridSize = 20;
+      const tileCount = canvas.width / gridSize;
+
+      let snake, food, dx, dy, score, gameLoop, gameRunning;
+
+      function init() {
+        snake = [{ x: 10, y: 10 }];
+        food = spawnFood();
+        dx = 1;
+        dy = 0;
+        score = 0;
+        gameRunning = true;
+        scoreEl.textContent = score;
+        gameOverEl.classList.remove("active");
+
+        if (gameLoop) clearInterval(gameLoop);
+        gameLoop = setInterval(update, 120);
+      }
+
+      function spawnFood() {
+        let pos;
+        do {
+          pos = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount),
+          };
+        } while (snake.some((s) => s.x === pos.x && s.y === pos.y));
+        return pos;
+      }
+
+      function update() {
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+        // Wall collision
+        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+          return endGame();
+        }
+
+        // Self collision
+        if (snake.some((s) => s.x === head.x && s.y === head.y)) {
+          return endGame();
+        }
+
+        snake.unshift(head);
+
+        // Eat food
+        if (head.x === food.x && head.y === food.y) {
+          score++;
+          scoreEl.textContent = score;
+          food = spawnFood();
+        } else {
+          snake.pop();
+        }
+
+        draw();
+      }
+
+      function draw() {
+        // Clear
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Food
+        ctx.fillStyle = "#ff4444";
+        ctx.shadowColor = "#ff4444";
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(
+          food.x * gridSize + gridSize / 2,
+          food.y * gridSize + gridSize / 2,
+          gridSize / 2 - 2,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Snake
+        snake.forEach((segment, i) => {
+          const brightness = Math.max(40, 100 - i * 3);
+          ctx.fillStyle = i === 0 ? "#00ff88" : `hsl(155, 100%, ${brightness}%)`;
+          ctx.shadowColor = i === 0 ? "#00ff88" : "transparent";
+          ctx.shadowBlur = i === 0 ? 6 : 0;
+          ctx.fillRect(
+            segment.x * gridSize + 1,
+            segment.y * gridSize + 1,
+            gridSize - 2,
+            gridSize - 2
+          );
+        });
+        ctx.shadowBlur = 0;
+      }
+
+      function endGame() {
+        gameRunning = false;
+        clearInterval(gameLoop);
+        finalScoreEl.textContent = score;
+        gameOverEl.classList.add("active");
+      }
+
+      function changeDirection(newDx, newDy) {
+        // Prevent reversing
+        if (dx === -newDx && dy === -newDy) return;
+        dx = newDx;
+        dy = newDy;
+      }
+
+      // Keyboard controls
+      document.addEventListener("keydown", (e) => {
+        if (!gameRunning) return;
+        switch (e.key) {
+          case "ArrowUp":
+            e.preventDefault();
+            changeDirection(0, -1);
+            break;
+          case "ArrowDown":
+            e.preventDefault();
+            changeDirection(0, 1);
+            break;
+          case "ArrowLeft":
+            e.preventDefault();
+            changeDirection(-1, 0);
+            break;
+          case "ArrowRight":
+            e.preventDefault();
+            changeDirection(1, 0);
+            break;
+        }
+      });
+
+      // D-pad controls
+      document.getElementById("btn-up").addEventListener("click", () => changeDirection(0, -1));
+      document.getElementById("btn-down").addEventListener("click", () => changeDirection(0, 1));
+      document.getElementById("btn-left").addEventListener("click", () => changeDirection(-1, 0));
+      document.getElementById("btn-right").addEventListener("click", () => changeDirection(1, 0));
+
+      // Restart
+      restartBtn.addEventListener("click", init);
+
+      // Resize canvas for mobile
+      function resizeCanvas() {
+        const maxSize = Math.min(400, window.innerWidth - 40);
+        canvas.style.width = maxSize + "px";
+        canvas.style.height = maxSize + "px";
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      // Start
+      init();
+    </script>
+  </body>
+</html>
