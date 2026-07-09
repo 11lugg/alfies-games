@@ -19,10 +19,13 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        min-height: 100vh;
-        padding: 16px;
+        justify-content: center;
+        height: 100vh;
+        height: 100dvh;
+        padding: 10px;
         user-select: none;
         -webkit-user-select: none;
+        overflow: hidden;
       }
 
       h1 {
@@ -273,7 +276,7 @@
       }
 
       function setCellSize() {
-        const maxSize = Math.min(400, window.innerWidth - 48);
+        const maxSize = Math.min(400, window.innerWidth - 48, window.innerHeight - 340);
         const cellSize = Math.floor((maxSize - (GRID - 1) * 2 - 8) / GRID);
         document.documentElement.style.setProperty("--cell-size", cellSize + "px");
         boardEl.style.gridTemplateColumns = `repeat(${GRID}, ${cellSize}px)`;

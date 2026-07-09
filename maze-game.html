@@ -24,8 +24,10 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
-        padding: 20px;
+        height: 100vh;
+        height: 100dvh;
+        padding: 12px;
+        overflow: hidden;
       }
 
       h1 {
@@ -436,7 +438,7 @@
       }
 
       function renderMaze() {
-        const maxSize = Math.min(600, window.innerWidth - 60);
+        const maxSize = Math.min(600, window.innerWidth - 60, window.innerHeight - 320);
         const cellSize = Math.floor(maxSize / Math.max(rows, cols));
         const emojiSize = Math.max(10, cellSize - 4) + "px";
 

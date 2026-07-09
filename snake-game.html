@@ -19,8 +19,10 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
-        padding: 20px;
+        height: 100vh;
+        height: 100dvh;
+        padding: 12px;
+        overflow: hidden;
       }
 
       h1 {
@@ -299,7 +301,7 @@
 
       // Resize canvas for mobile
       function resizeCanvas() {
-        const maxSize = Math.min(400, window.innerWidth - 40);
+        const maxSize = Math.min(400, window.innerWidth - 40, window.innerHeight - 280);
         canvas.style.width = maxSize + "px";
         canvas.style.height = maxSize + "px";
       }
