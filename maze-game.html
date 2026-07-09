@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Man United Maze</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #1a0000;
+        background-image:
+          radial-gradient(ellipse at top, #2d0000 0%, #1a0000 70%);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      h1 {
+        margin-bottom: 4px;
+        font-size: 2rem;
+        color: #ffd700;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+      }
+
+      .subtitle {
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+        color: #ffcccc;
+        letter-spacing: 1px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .controls label {
+        font-size: 0.9rem;
+        color: #ffcccc;
+      }
+
+      .controls input[type="number"] {
+        width: 60px;
+        padding: 6px 8px;
+        border: 2px solid #ffd700;
+        border-radius: 4px;
+        background: #4a0000;
+        color: #fff;
+        font-size: 0.9rem;
+      }
+
+      .controls button {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 4px;
+        background: #da020e;
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 2px solid #ffd700;
+      }
+
+      .controls button:hover {
+        background: #ff1a1a;
+      }
+
+      #maze-container {
+        display: grid;
+        gap: 0;
+        border: 4px solid #ffd700;
+        border-radius: 4px;
+        box-shadow: 0 4px 30px rgba(218, 2, 14, 0.3);
+        background: #2d0000;
+      }
+
+      .cell {
+        width: var(--cell-size);
+        height: var(--cell-size);
+        background: #3d8c40;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--emoji-size, 14px);
+        line-height: 1;
+      }
+
+      .cell.wall {
+        background: #da020e;
+        border: 1px solid #b00000;
+      }
+
+      .cell.player {
+        background: #3d8c40;
+      }
+
+      .cell.player::after {
+        content: "⚽";
+        font-size: var(--emoji-size, 14px);
+        position: absolute;
+        filter: drop-shadow(0 0 4px rgba(255,255,255,0.8));
+      }
+
+      .cell.start {
+        background: #4caf50;
+      }
+
+      .cell.start::after {
+        content: "🔴";
+        font-size: var(--emoji-size, 14px);
+        position: absolute;
+      }
+
+      .cell.player.start::after {
+        content: "⚽";
+      }
+
+      .cell.end {
+        background: #4caf50;
+      }
+
+      .cell.end::after {
+        content: "🏆";
+        font-size: var(--emoji-size, 14px);
+        position: absolute;
+      }
+
+      .cell.trail {
+        background: #2e6b30;
+        box-shadow: inset 0 0 3px rgba(0,0,0,0.3);
+      }
+
+      .cell.trail.start {
+        background: #4caf50;
+      }
+
+      .cell.player.end::after {
+        content: "⚽";
+      }
+
+      .cell.player.end {
+        background: #ffd700;
+        box-shadow: 0 0 12px #ffd700;
+      }
+
+      #message {
+        margin-top: 16px;
+        font-size: 1.2rem;
+        min-height: 1.4em;
+        color: #ffd700;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+      }
+
+      .instructions {
+        margin-top: 12px;
+        font-size: 0.85rem;
+        color: #ff9999;
+      }
+
+      /* Celebration overlay */
+      #celebration {
+        display: none;
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1000;
+        overflow: hidden;
+      }
+
+      #celebration.active {
+        display: block;
+      }
+
+      #celebration .goal-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 5rem;
+        font-weight: 900;
+        color: #ffd700;
+        text-shadow:
+          3px 3px 0 #b8860b,
+          0 0 30px rgba(255, 215, 0, 0.8),
+          0 0 60px rgba(218, 2, 14, 0.6);
+        animation: goalPulse 0.6s ease-in-out infinite alternate;
+        letter-spacing: 4px;
+        white-space: nowrap;
+        text-align: center;
+        line-height: 1.3;
+      }
+
+      @keyframes goalPulse {
+        from { transform: translate(-50%, -50%) scale(1); }
+        to { transform: translate(-50%, -50%) scale(1.08); }
+      }
+
+      .confetti {
+        position: absolute;
+        top: -20px;
+        animation: confettiFall linear forwards;
+        font-size: 2rem;
+      }
+
+      @keyframes confettiFall {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(110vh) rotate(720deg); opacity: 0.7; }
+      }
+
+      .streamer {
+        position: absolute;
+        top: -40px;
+        width: 10px;
+        border-radius: 2px;
+        animation: streamerFall linear forwards;
+      }
+
+      @keyframes streamerFall {
+        0% { transform: translateY(0) rotateZ(0deg) scaleY(1); opacity: 1; }
+        50% { transform: translateY(55vh) rotateZ(180deg) scaleY(1.5); opacity: 0.9; }
+        100% { transform: translateY(110vh) rotateZ(360deg) scaleY(0.8); opacity: 0.5; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔴 Man United Maze 😈</h1>
+    <div class="subtitle">Glory Glory Man United!</div>
+
+    <div class="controls">
+      <label
+        >Rows:
+        <input type="number" id="rows" min="5" max="101" step="2" value="41"
+      /></label>
+      <label
+        >Cols:
+        <input type="number" id="cols" min="5" max="101" step="2" value="41"
+      /></label>
+      <button id="generate-btn">⚽ Kick Off</button>
+    </div>
+
+    <div id="celebration"></div>
+    <div id="maze-container" role="grid" aria-label="Man United Maze"></div>
+    <div id="message"></div>
+    <div class="instructions">
+      Use arrow keys to dribble from
+      🔴 <span style="color: #ff6666">Old Trafford</span> to
+      🏆 <span style="color: #ffd700">the trophy</span>
+    </div>
+
+    <script>
+      const mazeContainer = document.getElementById("maze-container");
+      const messageEl = document.getElementById("message");
+      const generateBtn = document.getElementById("generate-btn");
+      const rowsInput = document.getElementById("rows");
+      const colsInput = document.getElementById("cols");
+
+      let maze = [];
+      let rows = 41;
+      let cols = 41;
+      let player = { r: 0, c: 0 };
+      let end = { r: 0, c: 0 };
+      let trail = new Set();
+      let gameWon = false;
+
+      function ensureOdd(n) {
+        n = Math.max(5, Math.min(101, parseInt(n) || 5));
+        return n % 2 === 0 ? n + 1 : n;
+      }
+
+      function generateMaze(numRows, numCols) {
+        const grid = Array.from({ length: numRows }, () =>
+          Array(numCols).fill(1),
+        );
+
+        const startR = 1;
+        const startC = 1;
+        grid[startR][startC] = 0;
+
+        const stack = [[startR, startC]];
+        const directions = [
+          [-2, 0],
+          [2, 0],
+          [0, -2],
+          [0, 2],
+        ];
+
+        function shuffle(arr) {
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          return arr;
+        }
+
+        while (stack.length > 0) {
+          const [cr, cc] = stack[stack.length - 1];
+          const dirs = shuffle([...directions]);
+          let moved = false;
+
+          for (const [dr, dc] of dirs) {
+            const nr = cr + dr;
+            const nc = cc + dc;
+
+            if (
+              nr > 0 &&
+              nr < numRows - 1 &&
+              nc > 0 &&
+              nc < numCols - 1 &&
+              grid[nr][nc] === 1
+            ) {
+              grid[cr + dr / 2][cc + dc / 2] = 0;
+              grid[nr][nc] = 0;
+              stack.push([nr, nc]);
+              moved = true;
+              break;
+            }
+          }
+
+          if (!moved) {
+            stack.pop();
+          }
+        }
+
+        // Add many extra dead-end branches for more false paths.
+        // Higher density = more wrong turns and confusion.
+        const extraBranches = Math.floor((numRows * numCols) * 0.08);
+        let added = 0;
+        let attempts = 0;
+        while (added < extraBranches && attempts < extraBranches * 30) {
+          attempts++;
+          const r = 2 + Math.floor(Math.random() * (numRows - 4));
+          const c = 2 + Math.floor(Math.random() * (numCols - 4));
+          if (grid[r][c] !== 1) continue;
+
+          const openNeighbors = [
+            [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
+          ].filter(([nr, nc]) => grid[nr][nc] === 0);
+
+          if (openNeighbors.length === 1) {
+            grid[r][c] = 0;
+            added++;
+
+            // Extend the dead-end further (up to 8 cells) for longer misleading paths
+            let cr = r, cc = c;
+            const extLen = 2 + Math.floor(Math.random() * 7);
+            for (let e = 0; e < extLen; e++) {
+              const dirs = [[cr-1,cc],[cr+1,cc],[cr,cc-1],[cr,cc+1]];
+              const candidates = dirs.filter(([nr, nc]) =>
+                nr > 1 && nr < numRows - 2 &&
+                nc > 1 && nc < numCols - 2 &&
+                grid[nr][nc] === 1 &&
+                [[nr-1,nc],[nr+1,nc],[nr,nc-1],[nr,nc+1]]
+                  .filter(([ar, ac]) => grid[ar][ac] === 0).length === 1
+              );
+              if (candidates.length === 0) break;
+              const [nr, nc] = candidates[Math.floor(Math.random() * candidates.length)];
+              grid[nr][nc] = 0;
+              cr = nr;
+              cc = nc;
+              added++;
+            }
+          }
+        }
+
+        return grid;
+      }
+
+      function renderMaze() {
+        const maxSize = Math.min(600, window.innerWidth - 60);
+        const cellSize = Math.floor(maxSize / Math.max(rows, cols));
+        const emojiSize = Math.max(10, cellSize - 4) + "px";
+
+        mazeContainer.style.setProperty("--cell-size", cellSize + "px");
+        mazeContainer.style.setProperty("--emoji-size", emojiSize);
+        mazeContainer.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+        mazeContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+
+        mazeContainer.innerHTML = "";
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+
+            if (maze[r][c] === 1) {
+              cell.classList.add("wall");
+            }
+
+            if (r === 1 && c === 1) {
+              cell.classList.add("start");
+            }
+
+            if (r === end.r && c === end.c) {
+              cell.classList.add("end");
+            }
+
+            if (trail.has(`${r},${c}`)) {
+              cell.classList.add("trail");
+            }
+
+            if (r === player.r && c === player.c) {
+              cell.classList.add("player");
+            }
+
+            mazeContainer.appendChild(cell);
+          }
+        }
+      }
+
+      function startGame() {
+        rows = ensureOdd(rowsInput.value);
+        cols = ensureOdd(colsInput.value);
+        rowsInput.value = rows;
+        colsInput.value = cols;
+
+        maze = generateMaze(rows, cols);
+        player = { r: 1, c: 1 };
+        end = { r: rows - 2, c: cols - 2 };
+        trail = new Set();
+        trail.add("1,1");
+        gameWon = false;
+        messageEl.textContent = "";
+        hideCelebration();
+
+        renderMaze();
+      }
+
+      function movePlayer(dr, dc) {
+        if (gameWon) return;
+
+        const nr = player.r + dr;
+        const nc = player.c + dc;
+
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
+        if (maze[nr][nc] === 1) return;
+
+        player.r = nr;
+        player.c = nc;
+        trail.add(`${nr},${nc}`);
+
+        renderMaze();
+
+        if (player.r === end.r && player.c === end.c) {
+          gameWon = true;
+          messageEl.textContent =
+            "🎉 GLORY GLORY! You've won the treble! Press Kick Off to play again.";
+          showCelebration();
+        }
+      }
+
+      document.addEventListener("keydown", (e) => {
+        switch (e.key) {
+          case "ArrowUp":
+            e.preventDefault();
+            movePlayer(-1, 0);
+            break;
+          case "ArrowDown":
+            e.preventDefault();
+            movePlayer(1, 0);
+            break;
+          case "ArrowLeft":
+            e.preventDefault();
+            movePlayer(0, -1);
+            break;
+          case "ArrowRight":
+            e.preventDefault();
+            movePlayer(0, 1);
+            break;
+        }
+      });
+
+      function showCelebration() {
+        const el = document.getElementById("celebration");
+        el.innerHTML = "";
+        el.classList.add("active");
+
+        // GOAL text
+        const goalText = document.createElement("div");
+        goalText.className = "goal-text";
+        goalText.innerHTML = "GLORY GLORY<br>MAN UNITED!";
+        el.appendChild(goalText);
+
+        // Red & gold streamers with devils and footballs
+        const streamColors = ["#da020e","#ffd700","#ff1a1a","#fff","#da020e","#ffd700","#b00000"];
+        const confettiEmojis = ["⚽","⚽","😈","🔴","�","⭐","�"];
+        const total = 80;
+
+        for (let i = 0; i < total; i++) {
+          const isStreamer = i < 50;
+          const piece = document.createElement("div");
+          piece.style.left = Math.random() * 100 + "vw";
+          const duration = 2 + Math.random() * 3;
+          const delay = Math.random() * 2;
+
+          if (isStreamer) {
+            piece.className = "streamer";
+            piece.style.height = 30 + Math.random() * 60 + "px";
+            piece.style.background = streamColors[Math.floor(Math.random() * streamColors.length)];
+            piece.style.animationDuration = duration + "s";
+            piece.style.animationDelay = delay + "s";
+          } else {
+            piece.className = "confetti";
+            piece.textContent = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)];
+            piece.style.animationDuration = duration + "s";
+            piece.style.animationDelay = delay + "s";
+            piece.style.fontSize = (1.2 + Math.random() * 1.5) + "rem";
+          }
+
+          el.appendChild(piece);
+        }
+
+        setTimeout(() => el.classList.remove("active"), 5500);
+      }
+
+      function hideCelebration() {
+        const el = document.getElementById("celebration");
+        el.classList.remove("active");
+        el.innerHTML = "";
+      }
+
+      generateBtn.addEventListener("click", startGame);
+
+      // Kick off on load
+      startGame();
+    </script>
+  </body>
+</html>
