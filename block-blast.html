@@ -117,6 +117,7 @@
         cursor: grab;
         touch-action: none;
         transition: border-color 0.2s, transform 0.2s;
+        position: relative;
       }
 
       .piece-holder.selected {
@@ -125,9 +126,29 @@
         box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
       }
 
+      .piece-holder.dragging {
+        opacity: 0.3;
+      }
+
       .piece-holder.used {
         opacity: 0.2;
         pointer-events: none;
+      }
+
+      .drag-ghost {
+        position: fixed;
+        pointer-events: none;
+        z-index: 200;
+        display: grid;
+        gap: 2px;
+        opacity: 0.85;
+        transform: translate(-50%, -50%);
+      }
+
+      .drag-ghost .piece-cell {
+        width: var(--cell-size, 20px);
+        height: var(--cell-size, 20px);
+        border-radius: 3px;
       }
 
       .piece-cell {
@@ -218,7 +239,7 @@
       <p>Final Score: <span id="final-score">0</span></p>
       <button id="restart-btn">⚽ New Match</button>
     </div>
-    <div class="instructions">Tap a piece, then tap the board to place it. Clear rows & columns to score!</div>
+    <div class="instructions">Drag a piece onto the board, or tap to select then tap to place. Clear rows & columns to score!</div>
 
     <script>
       const GRID = 8;
@@ -238,28 +259,33 @@
       let pieces = [];
       let selectedPiece = null;
 
-      // Piece shapes (relative coords)
+      // Drag state
+      let dragging = false;
+      let dragPieceIdx = null;
+      let dragGhost = null;
+      let dragBoardTarget = null;
+
       const SHAPES = [
-        [[0,0],[1,0],[2,0]], // I-3 horizontal
-        [[0,0],[0,1],[0,2]], // I-3 vertical
-        [[0,0],[1,0],[2,0],[3,0]], // I-4 horizontal
-        [[0,0],[0,1],[0,2],[0,3]], // I-4 vertical
-        [[0,0],[1,0],[0,1],[1,1]], // O-2x2
-        [[0,0],[1,0],[1,1]], // L small
-        [[0,0],[0,1],[1,0]], // J small
-        [[0,0],[1,0],[2,0],[2,1]], // L big
-        [[0,0],[0,1],[0,2],[1,0]], // J big
-        [[0,0],[1,0],[2,0],[0,1]], // T-ish
-        [[0,0],[1,0],[1,1],[2,1]], // S
-        [[0,0],[0,1],[1,1],[1,2]], // Z
-        [[0,0]], // single
-        [[0,0],[1,0]], // I-2 horizontal
-        [[0,0],[0,1]], // I-2 vertical
-        [[0,0],[1,0],[2,0],[0,1],[0,2]], // big L
-        [[0,0],[1,0],[2,0],[2,1],[2,2]], // big J
-        [[0,0],[0,1],[0,2],[1,0],[2,0]], // corner
-        [[0,0],[1,0],[2,0],[1,1],[1,2]], // T big
-        [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], // 3x3
+        [[0,0],[1,0],[2,0]],
+        [[0,0],[0,1],[0,2]],
+        [[0,0],[1,0],[2,0],[3,0]],
+        [[0,0],[0,1],[0,2],[0,3]],
+        [[0,0],[1,0],[0,1],[1,1]],
+        [[0,0],[1,0],[1,1]],
+        [[0,0],[0,1],[1,0]],
+        [[0,0],[1,0],[2,0],[2,1]],
+        [[0,0],[0,1],[0,2],[1,0]],
+        [[0,0],[1,0],[2,0],[0,1]],
+        [[0,0],[1,0],[1,1],[2,1]],
+        [[0,0],[0,1],[1,1],[1,2]],
+        [[0,0]],
+        [[0,0],[1,0]],
+        [[0,0],[0,1]],
+        [[0,0],[1,0],[2,0],[0,1],[0,2]],
+        [[0,0],[1,0],[2,0],[2,1],[2,2]],
+        [[0,0],[0,1],[0,2],[1,0],[2,0]],
+        [[0,0],[1,0],[2,0],[1,1],[1,2]],
+        [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
       ];
 
       function init() {
@@ -270,6 +296,9 @@
         messageEl.textContent = "";
         gameOverEl.classList.remove("active");
         selectedPiece = null;
+        dragging = false;
+        dragPieceIdx = null;
+        removeDragGhost();
         generatePieces();
         renderBoard();
       }
@@ -279,6 +308,7 @@
         const cellSize = Math.floor((maxSize - (GRID - 1) * 2 - 8) / GRID);
         document.documentElement.style.setProperty("--cell-size", cellSize + "px");
         boardEl.style.gridTemplateColumns = `repeat(${GRID}, ${cellSize}px)`;
+        return cellSize;
       }
 
       function renderBoard() {
@@ -294,9 +324,12 @@
             cell.dataset.r = r;
             cell.dataset.c = c;
             cell.addEventListener("click", () => placePiece(r, c));
-            cell.addEventListener("mouseenter", () => showPreview(r, c));
-            cell.addEventListener("mouseleave", clearPreview);
-            cell.addEventListener("touchmove", handleTouchMove);
+            cell.addEventListener("mouseenter", () => {
+              if (!dragging) showPreview(r, c);
+            });
+            cell.addEventListener("mouseleave", () => {
+              if (!dragging) clearPreview();
+            });
             boardEl.appendChild(cell);
           }
         }
@@ -321,7 +354,8 @@
           const holder = document.createElement("div");
           holder.className = "piece-holder";
           if (piece.used) holder.classList.add("used");
-          if (selectedPiece === idx) holder.classList.add("selected");
+          if (selectedPiece === idx && !dragging) holder.classList.add("selected");
+          if (dragging && dragPieceIdx === idx) holder.classList.add("dragging");
           holder.style.gridTemplateColumns = `repeat(${maxC}, 20px)`;
           holder.style.gridTemplateRows = `repeat(${maxR}, 20px)`;
 
@@ -338,17 +372,154 @@
             }
           }
 
-          holder.addEventListener("click", () => {
+          // Mouse drag
+          holder.addEventListener("mousedown", (e) => {
             if (piece.used) return;
+            e.preventDefault();
+            startDrag(idx, e.clientX, e.clientY);
+          });
+
+          // Touch drag
+          holder.addEventListener("touchstart", (e) => {
+            if (piece.used) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            startDrag(idx, touch.clientX, touch.clientY);
+          });
+
+          // Tap fallback (select mode)
+          holder.addEventListener("click", (e) => {
+            if (piece.used || dragging) return;
             selectedPiece = selectedPiece === idx ? null : idx;
             renderPieces();
             renderBoard();
-            showPreview();
           });
 
           piecesEl.appendChild(holder);
         });
       }
+
+      // --- Drag and Drop ---
+
+      function startDrag(idx, x, y) {
+        dragging = true;
+        dragPieceIdx = idx;
+        selectedPiece = idx;
+        createDragGhost(idx, x, y);
+        renderPieces();
+      }
+
+      function createDragGhost(idx, x, y) {
+        removeDragGhost();
+        const piece = pieces[idx];
+        const maxR = Math.max(...piece.shape.map(([r]) => r)) + 1;
+        const maxC = Math.max(...piece.shape.map(([, c]) => c)) + 1;
+        const cellSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell-size")) || 20;
+
+        dragGhost = document.createElement("div");
+        dragGhost.className = "drag-ghost";
+        dragGhost.style.gridTemplateColumns = `repeat(${maxC}, ${cellSize}px)`;
+        dragGhost.style.gridTemplateRows = `repeat(${maxR}, ${cellSize}px)`;
+        dragGhost.style.left = x + "px";
+        dragGhost.style.top = y + "px";
+
+        for (let r = 0; r < maxR; r++) {
+          for (let c = 0; c < maxC; c++) {
+            const cell = document.createElement("div");
+            cell.className = "piece-cell";
+            if (piece.shape.some(([sr, sc]) => sr === r && sc === c)) {
+              cell.classList.add("filled-" + piece.color);
+            } else {
+              cell.classList.add("empty");
+            }
+            dragGhost.appendChild(cell);
+          }
+        }
+
+        document.body.appendChild(dragGhost);
+      }
+
+      function moveDragGhost(x, y) {
+        if (!dragGhost) return;
+        dragGhost.style.left = x + "px";
+        dragGhost.style.top = y + "px";
+
+        // Find board cell under pointer
+        const el = document.elementFromPoint(x, y);
+        if (el && el.dataset.r !== undefined) {
+          const r = parseInt(el.dataset.r);
+          const c = parseInt(el.dataset.c);
+          if (dragBoardTarget === null || dragBoardTarget.r !== r || dragBoardTarget.c !== c) {
+            dragBoardTarget = { r, c };
+            showPreview(r, c);
+          }
+        } else {
+          if (dragBoardTarget !== null) {
+            dragBoardTarget = null;
+            clearPreview();
+          }
+        }
+      }
+
+      function endDrag(x, y) {
+        if (!dragging) return;
+        dragging = false;
+
+        // Try to place at the current board target
+        // Use elementFromPoint with ghost hidden
+        if (dragGhost) dragGhost.style.display = "none";
+        const el = document.elementFromPoint(x, y);
+        if (dragGhost) dragGhost.style.display = "";
+
+        removeDragGhost();
+
+        if (el && el.dataset.r !== undefined) {
+          const r = parseInt(el.dataset.r);
+          const c = parseInt(el.dataset.c);
+          placePiece(r, c);
+        } else {
+          // Dropped outside board — deselect
+          selectedPiece = null;
+          clearPreview();
+          renderPieces();
+          renderBoard();
+        }
+
+        dragPieceIdx = null;
+        dragBoardTarget = null;
+      }
+
+      function removeDragGhost() {
+        if (dragGhost) {
+          dragGhost.remove();
+          dragGhost = null;
+        }
+      }
+
+      // Mouse events
+      document.addEventListener("mousemove", (e) => {
+        if (dragging) moveDragGhost(e.clientX, e.clientY);
+      });
+      document.addEventListener("mouseup", (e) => {
+        if (dragging) endDrag(e.clientX, e.clientY);
+      });
+
+      // Touch events
+      document.addEventListener("touchmove", (e) => {
+        if (dragging) {
+          e.preventDefault();
+          const touch = e.touches[0];
+          moveDragGhost(touch.clientX, touch.clientY);
+        }
+      }, { passive: false });
+      document.addEventListener("touchend", (e) => {
+        if (dragging) {
+          const touch = e.changedTouches[0];
+          endDrag(touch.clientX, touch.clientY);
+        }
+      });
+
+      // --- Game Logic ---
 
       function canPlace(shape, startR, startC) {
         for (const [dr, dc] of shape) {
@@ -371,7 +542,6 @@
           return;
         }
 
-        // Place
         for (const [dr, dc] of piece.shape) {
           grid[startR + dr][startC + dc] = piece.color;
         }
@@ -380,7 +550,6 @@
         piece.used = true;
         selectedPiece = null;
 
-        // Check for clears
         clearLines();
 
         scoreEl.textContent = score;
@@ -393,12 +562,10 @@
         renderBoard();
         renderPieces();
 
-        // Check if all pieces used -> new set
         if (pieces.every((p) => p.used)) {
           generatePieces();
         }
 
-        // Check game over
         if (isGameOver()) {
           setTimeout(() => {
             finalScoreEl.textContent = score;
@@ -421,7 +588,6 @@
         const totalCleared = rowsToClear.length + colsToClear.length;
         if (totalCleared === 0) return;
 
-        // Bonus for multiple clears
         score += totalCleared * GRID * 2;
         if (totalCleared > 1) {
           score += totalCleared * 10;
@@ -477,22 +643,12 @@
       function clearPreview() {
         boardEl.querySelectorAll(".preview").forEach((cell) => {
           cell.classList.remove("preview", "invalid", "filled-0", "filled-1", "filled-2", "filled-3", "filled-4");
-          // Re-add filled class if cell actually has a block
           const r = parseInt(cell.dataset.r);
           const c = parseInt(cell.dataset.c);
           if (grid[r][c] >= 0) {
             cell.classList.add("filled-" + grid[r][c]);
           }
         });
-      }
-
-      function handleTouchMove(e) {
-        if (selectedPiece === null) return;
-        const touch = e.touches[0];
-        const el = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (el && el.dataset.r !== undefined) {
-          showPreview(parseInt(el.dataset.r), parseInt(el.dataset.c));
-        }
       }
 
       restartBtn.addEventListener("click", init);
