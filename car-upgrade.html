@@ -463,7 +463,7 @@
       <div class="bg-buildings" id="buildings"></div>
       <div class="bg-trees" id="trees"></div>
       <div class="road"></div>
-      <div class="car" id="car">🚗<div class="exhaust" id="exhaust"></div></div>
+      <div class="car" id="car"><span id="car-emoji"></span>🚗</span><div class="exhaust" id="exhaust"></div></div>
       <div class="speed-display"><span id="speed">0</span> <small>km/h</small></div>
       <div class="result" id="result"></div>
       <button class="race-btn" id="race-btn">🏁 Race!</button>
@@ -547,7 +547,7 @@
         coinsEl.textContent = state.coins;
         racesEl.textContent = state.races;
         bestSpeedEl.textContent = state.bestSpeed;
-        carEl.textContent = CARS[state.currentCar].emoji;
+        document.getElementById("car-emoji").textContent = CARS[state.currentCar].emoji;
         applyTheme();
         renderUpgrades();
         renderGarage();
