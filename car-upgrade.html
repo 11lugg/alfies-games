@@ -252,7 +252,7 @@
       /* Exhaust / dust particles */
       .exhaust {
         position: absolute;
-        bottom: 0;
+        top: 50%;
         right: -10px;
         pointer-events: none;
         z-index: 5;
@@ -559,17 +559,25 @@
       function applyTheme() {
         const theme = CARS[state.currentCar].theme;
         const area = gameAreaEl;
+        const exhaustEl = document.getElementById("exhaust");
 
         // Remove old theme classes
         area.classList.remove("theme-city", "theme-highway", "theme-racing", "theme-space", "theme-alien");
         area.classList.add("theme-" + theme);
 
-        // Set car orientation
-        // Car emojis face left, so flip them. Rocket faces up, rotate 90deg.
+        // Set car orientation and exhaust position
         if (theme === "space") {
           carEl.style.transform = "rotate(45deg)";
+          exhaustEl.style.top = "";
+          exhaustEl.style.bottom = "-10px";
+          exhaustEl.style.right = "";
+          exhaustEl.style.left = "50%";
         } else {
           carEl.style.transform = "scaleX(-1)";
+          exhaustEl.style.bottom = "";
+          exhaustEl.style.top = "50%";
+          exhaustEl.style.right = "-10px";
+          exhaustEl.style.left = "";
         }
       }
 
