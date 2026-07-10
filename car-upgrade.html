@@ -150,6 +150,7 @@
       .building {
         position: absolute;
         bottom: 0;
+        right: -60px;
         background: #222240;
         border-radius: 2px 2px 0 0;
         animation: buildingScroll linear infinite;
@@ -161,8 +162,8 @@
       }
 
       @keyframes buildingScroll {
-        from { transform: translateX(420px); }
-        to { transform: translateX(-60px); }
+        from { transform: translateX(0); }
+        to { transform: translateX(-480px); }
       }
 
       .bg-trees {
@@ -176,6 +177,7 @@
       .tree {
         position: absolute;
         bottom: 0;
+        right: -30px;
         font-size: 1.2rem;
         animation: treeScroll linear infinite;
         opacity: 0;
@@ -186,8 +188,8 @@
       }
 
       @keyframes treeScroll {
-        from { transform: translateX(420px); }
-        to { transform: translateX(-30px); }
+        from { transform: translateX(0); }
+        to { transform: translateX(-450px); }
       }
 
       .road {
@@ -204,6 +206,7 @@
       .road-line {
         position: absolute;
         bottom: 37px;
+        right: -40px;
         height: 3px;
         width: 30px;
         background: #ffd700;
@@ -211,13 +214,13 @@
       }
 
       @keyframes roadScroll {
-        from { transform: translateX(420px); }
-        to { transform: translateX(-40px); }
+        from { transform: translateX(0); }
+        to { transform: translateX(-460px); }
       }
 
-      /* Speed lines for fast feeling */
       .speed-line {
         position: absolute;
+        right: -100px;
         height: 1px;
         background: rgba(255, 255, 255, 0.3);
         animation: speedLineScroll linear infinite;
@@ -229,8 +232,8 @@
       }
 
       @keyframes speedLineScroll {
-        from { transform: translateX(420px); }
-        to { transform: translateX(-100px); }
+        from { transform: translateX(0); }
+        to { transform: translateX(-520px); }
       }
 
       .car {
